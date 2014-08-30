@@ -214,7 +214,9 @@ sub remove_player {
         -- $self -> { 'players_by_id' } -> { $self -> { 'players' } -> [ $index ] -> id() };
     }
 
-    foreach my $foe_id ( @{ $self -> foes_of( $player ) } ) {
+    foreach my $foe ( @{ $self -> foes_of( $player ) } ) {
+
+        my $foe_id = $foe -> id();
 
         delete( $self -> { 'foes' } -> { $foe_id } -> { $player_id } );
 
@@ -276,10 +278,7 @@ sub foes_of {
 
         while( my ( $id ) = each( %{ $self -> { 'foes' } -> { $player -> id() } } ) ) {
 
-            if( defined( my $player = $self -> get_player_by_id( $id ) ) ) {
-
-                push( @list, $player );
-            }
+            push( @list, $self -> get_player_by_id( $id ) );
         }
     }
 
