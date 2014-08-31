@@ -13,6 +13,7 @@ use Field ();
 use Engine ();
 use Player ();
 use Character ();
+use Ability::Remote::Attacking ();
 
 my $field = Field -> from_array( [
     [ 'a', '', '', '', 'c', ],
@@ -22,14 +23,23 @@ my $field = Field -> from_array( [
     [ 'd', '', '', '', 'b', ],
 ] );
 
+my $melee_attack = Ability::Remote::Attacking -> new(
+    name => 'Basic melee attack',
+    range => 2,
+    area => 1,
+    dice => [
+        [ 6, 0 ],
+    ]
+);
+
 my $character_a = Character -> new(
     id => 'a',
     name => 'First',
     max_movement_range => 1,
     max_hp => 24,
     speed => 1,
-    dice => [
-        [ 6, 0 ],
+    abilities => [
+        $melee_attack,
     ]
 );
 
@@ -39,8 +49,8 @@ my $character_b = Character -> new(
     max_movement_range => 1,
     max_hp => 24,
     speed => 1,
-    dice => [
-        [ 6, 0 ],
+    abilities => [
+        $melee_attack,
     ]
 );
 
@@ -50,8 +60,8 @@ my $character_c = Character -> new(
     max_movement_range => 1,
     max_hp => 24,
     speed => 1,
-    dice => [
-        [ 6, 0 ],
+    abilities => [
+        $melee_attack,
     ]
 );
 
@@ -61,8 +71,8 @@ my $character_d = Character -> new(
     max_movement_range => 1,
     max_hp => 24,
     speed => 1,
-    dice => [
-        [ 6, 0 ],
+    abilities => [
+        $melee_attack,
     ]
 );
 

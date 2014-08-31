@@ -22,6 +22,7 @@ sub main {
     sleep( 1 );
 
     my @characters = $engine -> get_characters_list();
+    my $round = 0;
 
     while( 1 ) {
 
@@ -64,7 +65,13 @@ sub main {
 
                     if( $best_path -> { 'step' } <= $character -> max_movement_range() ) {
 
-                        $best_target -> damage_hp( $character -> gen_damage() );
+                        my $ability = $character -> abilities() -> [ 0 ];
+                        my $damage = $character -> gen_damage( $ability );
+
+                        $best_target -> damage_hp( $damage );
+
+                        print $character -> name(), ' dealt ', $damage, ' damage to ',
+                            $best_target -> name(), ' using ', $ability -> name(), "\n";
 
                         unless( $best_target -> is_alive() ) {
 
@@ -91,6 +98,11 @@ sub main {
         }
 
         last if ( $active_characters > 0 ) && ( $moved_characters == 0 );
+
+        if( $active_characters > 0 ) {
+
+            print 'End if round ', ++$round, "\n";
+        }
 
         if( $refresh_characters_list ) {
 

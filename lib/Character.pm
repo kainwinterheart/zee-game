@@ -45,6 +45,13 @@ sub hp {
     return shift -> accessor( hp => @_ );
 }
 
+sub abilities {
+
+    my ( $self ) = @_;
+
+    return $self -> { 'abilities' };
+}
+
 sub damage_hp {
 
     my ( $self, $damage ) = @_;
@@ -54,23 +61,11 @@ sub damage_hp {
     return $self -> hp( ( $new_hp < 0 ) ? 0 : $new_hp );
 }
 
-sub dice {
-
-    return shift -> accessor( dice => @_ );
-}
-
 sub gen_damage {
 
-    my ( $self ) = @_;
+    my ( $self, $ability ) = @_;
 
-    my $damage = 0;
-
-    foreach my $dice ( @{ $self -> dice() } ) {
-
-        $damage += 1 + int( rand( $dice -> [ 0 ] ) ) + $dice -> [ 1 ];
-    }
-
-    return ( ( $damage < 0 ) ? 0 : $damage );
+    return $ability -> roll();
 }
 
 sub max_damage {
@@ -81,9 +76,14 @@ sub max_damage {
 
         my $damage = 0;
 
-        foreach my $dice ( @{ $self -> dice() } ) {
+        foreach my $ability ( @{ $self -> abilities() } ) {
 
-            $damage += $dice -> [ 0 ] + $dice -> [ 1 ];
+            my $l_damage = $ability -> max_roll();
+
+            if( $l_damage > $damage ) {
+
+                $damage = $l_damage;
+            }
         }
 
         ( ( $damage < 0 ) ? 0 : $damage );
@@ -125,6 +125,8 @@ sub speed {
 
     return shift -> accessor( speed => @_ );
 }
+
+
 
 1;
 

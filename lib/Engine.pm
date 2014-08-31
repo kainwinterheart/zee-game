@@ -66,12 +66,38 @@ sub find_best_path {
 
     my ( $self, $character_a, $character_b ) = @_;
 
+    my $ability = $character_a -> abilities() -> [ 0 ]; # TODO
     my $field = $self -> field();
     my $from = $field -> get_by_id( $character_a -> id() );
     my $path = undef;
 
-    foreach my $point ( sort( { rand() <=> rand() } @{ $field -> neighbours(
-        $field -> get_by_id( $character_b -> id() ) ) } ) ) {
+    my @points = ( $field -> get_by_id( $character_b -> id() ) );
+
+    foreach ( 1 .. ( $ability -> range() + ( $ability -> area() - 1 ) ) ) {
+
+        my @new_points = ();
+        my $break = 0;
+
+        foreach my $point ( @points ) {
+
+            if( $point -> is( $from ) ) {
+
+                @points = ( $point );
+
+                $break = 1;
+
+                last;
+            }
+
+            push( @new_points, @{ $field -> neighbours( $point ) } );
+        }
+
+        last if $break;
+
+        @points = @new_points;
+    }
+
+    foreach my $point ( sort( { rand() <=> rand() } @points ) ) {
 
         if( $point -> is( $from ) ) {
 
