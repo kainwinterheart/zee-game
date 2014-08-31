@@ -101,7 +101,7 @@ sub main {
 
         if( $active_characters > 0 ) {
 
-            print 'End if round ', ++$round, "\n";
+            print 'End of round ', ++$round, "\n";
         }
 
         if( $refresh_characters_list ) {
