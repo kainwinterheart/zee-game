@@ -96,6 +96,18 @@ sub tick {
     return;
 }
 
+sub turn {
+
+    my ( $self ) = @_;
+
+    foreach my $character ( @{ $self -> { 'characters' } } ) {
+
+        $character -> turn();
+    }
+
+    return;
+}
+
 1;
 
 __END__

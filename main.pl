@@ -25,11 +25,12 @@ my $field = Field -> from_array( [
 
 my $melee_attack = Ability::Remote::Attacking -> new(
     name => 'Basic melee attack',
-    range => 2,
+    range => 1,
     area => 1,
     dice => [
         [ 6, 0 ],
-    ]
+    ],
+    at => 0,
 );
 
 my $character_a = Character -> new(

@@ -46,6 +46,11 @@ sub max_roll {
     };
 }
 
+sub at {
+
+    return shift -> accessor( at => @_ );
+}
+
 1
 
 __END__

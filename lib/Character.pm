@@ -11,6 +11,8 @@ sub new {
 
     $args{ 'hp' } = $args{ 'max_hp' };
     $args{ 'ct' } = 0;
+    $args{ 'at' } = 0;
+    $args{ 'at_queue' } = [];
 
     return $self -> SUPER::new( %args );
 }
@@ -126,7 +128,54 @@ sub speed {
     return shift -> accessor( speed => @_ );
 }
 
+sub at {
 
+    return shift -> accessor( at => @_ );
+}
+
+sub schedule_at {
+
+    my ( $self, $cost, $action ) = @_;
+
+    push( @{ $self -> { 'at_queue' } }, [ $cost, $action ] );
+
+    return;
+}
+
+sub turn {
+
+    my ( $self ) = @_;
+
+    my $speed = $self -> speed();
+    my $new_at = $self -> at() + ( ( $speed < 0 ) ? 0 : $speed );
+
+    $self -> at( ( $new_at > 100 ) ? 100 : $new_at );
+    $self -> try_exec_at();
+    $self -> ct( 0 );
+
+    return;
+}
+
+sub try_exec_at {
+
+    my ( $self ) = @_;
+
+    my $new_at = $self -> at();
+
+    if(
+        defined $self -> { 'at_queue' } -> [ 0 ]
+        && ( $self -> { 'at_queue' } -> [ 0 ] -> [ 0 ] <= $new_at )
+    ) {
+
+        my $at = shift( @{ $self -> { 'at_queue' } } );
+
+        $self -> at( $new_at - $at -> [ 0 ] );
+
+        $at -> [ 1 ] -> ();
+    }
+
+    return;
+}
 
 1;
 

@@ -66,34 +66,38 @@ sub main {
                     if( $best_path -> { 'step' } <= $character -> max_movement_range() ) {
 
                         my $ability = $character -> abilities() -> [ 0 ];
-                        my $damage = $character -> gen_damage( $ability );
 
-                        $best_target -> damage_hp( $damage );
+                        $character -> schedule_at( $ability -> at() => sub {
 
-                        print $character -> name(), ' dealt ', $damage, ' damage to ',
-                            $best_target -> name(), ' using ', $ability -> name(), "\n";
+                            my $damage = $character -> gen_damage( $ability );
 
-                        unless( $best_target -> is_alive() ) {
+                            $best_target -> damage_hp( $damage );
 
-                            print $best_target -> name(), ' killed by ', $character -> name(), "\n";
+                            print $character -> name(), ' dealt ', $damage, ' damage to ',
+                                $best_target -> name(), ' using ', $ability -> name(), "\n";
 
-                            my $player = $best_target -> player();
+                            unless( $best_target -> is_alive() ) {
 
-                            $player -> remove_character( $best_target );
+                                print $best_target -> name(), ' killed by ', $character -> name(), "\n";
 
-                            $field -> empty_point( $field -> get_by_id( $best_target -> id() ) );
+                                my $player = $best_target -> player();
 
-                            unless( $player -> is_alive() ) {
+                                $player -> remove_character( $best_target );
 
-                                $engine -> remove_player( $player );
+                                $field -> empty_point( $field -> get_by_id( $best_target -> id() ) );
+
+                                unless( $player -> is_alive() ) {
+
+                                    $engine -> remove_player( $player );
+                                }
+
+                                $refresh_characters_list = 1;
                             }
-
-                            $refresh_characters_list = 1;
-                        }
+                        } );
                     }
                 }
 
-                $character -> ct( 0 );
+                $character -> turn();
             }
         }
 

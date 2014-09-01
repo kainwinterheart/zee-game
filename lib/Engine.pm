@@ -330,6 +330,18 @@ sub tick {
     return;
 }
 
+sub turn {
+
+    my ( $self ) = @_;
+
+    foreach my $player ( @{ $self -> { 'players' } } ) {
+
+        $player -> turn();
+    }
+
+    return;
+}
+
 sub get_characters_list {
 
     my ( $self ) = @_;
