@@ -63,33 +63,11 @@ sub damage_hp {
     return $self -> hp( ( $new_hp < 0 ) ? 0 : $new_hp );
 }
 
-sub gen_damage {
+sub roll_ability {
 
     my ( $self, $ability ) = @_;
 
     return $ability -> roll();
-}
-
-sub max_damage {
-
-    my ( $self ) = @_;
-
-    return $self -> { 'max_damage' } //= do {
-
-        my $damage = 0;
-
-        foreach my $ability ( @{ $self -> abilities() } ) {
-
-            my $l_damage = $ability -> max_roll();
-
-            if( $l_damage > $damage ) {
-
-                $damage = $l_damage;
-            }
-        }
-
-        ( ( $damage < 0 ) ? 0 : $damage );
-    };
 }
 
 sub is_alive {
@@ -175,6 +153,32 @@ sub try_exec_at {
     }
 
     return;
+}
+
+sub turns_to_ability {
+
+    my ( $self, $ability ) = @_;
+
+    my $at_deficit = ( $ability -> at() - $self -> at() );
+    my $speed = $self -> speed();
+
+    return ( ( $at_deficit > 0 )
+        ? ( int( $at_deficit / $speed ) + ( ( $at_deficit % $speed ) ? 1 : 0 ) )
+        : 0 );
+}
+
+sub max_ability_roll {
+
+    my ( $self, $ability ) = @_;
+
+    return $ability -> max_roll();
+}
+
+sub min_ability_roll {
+
+    my ( $self, $ability ) = @_;
+
+    return $ability -> min_roll();
 }
 
 1;

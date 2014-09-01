@@ -64,9 +64,8 @@ sub move_character {
 
 sub find_best_path {
 
-    my ( $self, $character_a, $character_b ) = @_;
+    my ( $self, $ability, $character_a, $character_b ) = @_;
 
-    my $ability = $character_a -> abilities() -> [ 0 ]; # TODO
     my $field = $self -> field();
     my $from = $field -> get_by_id( $character_a -> id() );
     my $path = undef;
@@ -136,81 +135,162 @@ sub find_best_path {
 
 sub find_best_target {
 
-    my ( $self, $character, $characters ) = @_;
+    my ( $self, $character, $foes ) = @_;
 
-    if( scalar( @$characters ) == 1 ) {
+    if( scalar( @$foes ) == 0 ) {
 
-        return $characters -> [ 0 ];
+        return undef;
     }
 
-    my $max_damage = undef;
+    my $hp = $character -> hp();
     my %tree = ();
+    my $field = $self -> field();
+    my $ability = $character -> abilities() -> [ 0 ]; # TODO
+    my $min_score = undef;
+    my $turns_to_ability = $character -> turns_to_ability( $ability );
+    my $max_movement_range = $character -> max_movement_range();
 
-    foreach my $character ( @$characters ) {
+    my $max_ability_roll = $character -> max_ability_roll( $ability );
+    my $min_ability_roll = $character -> min_ability_roll( $ability );
 
-        my $l_max_damage = $character -> max_damage();
+    my $max_ability_roll_probability = $ability -> max_roll_probability();
 
-        if( ! defined $max_damage || ( $l_max_damage >= $max_damage ) ) {
+    foreach my $foe ( @$foes ) {
 
-            $max_damage = $l_max_damage;
+        my $score = 0;
 
-            push( @{ $tree{ $max_damage } }, $character );
-        }
-    }
-
-    $characters = $tree{ $max_damage };
-
-    if( scalar( @$characters ) == 1 ) {
-
-        return $characters -> [ 0 ];
-    }
-
-    %tree = ();
-
-    my $min_hp = undef;
-
-    foreach my $character ( @$characters ) {
-
-        my $l_min_hp = $character -> hp();
-
-        if( ! defined $min_hp || ( $l_min_hp <= $min_hp ) ) {
-
-            $min_hp = $l_min_hp;
-
-            push( @{ $tree{ $min_hp } }, $character );
-        }
-    }
-
-    $characters = $tree{ $min_hp };
-
-    if( scalar( @$characters ) == 1 ) {
-
-        return $characters -> [ 0 ];
-    }
-
-    %tree = ();
-
-    my $min_distance = undef;
-
-    foreach my $character_b ( @$characters ) {
-
-        my $path = $self -> find_best_path( $character, $character_b );
+        my $path = $self -> find_best_path( $ability, $character, $foe );
 
         next unless defined $path;
 
-        my $l_min_distance = $path -> { 'step' };
+        if( $path -> { 'step' } == 0 ) {
 
-        if( ! defined $min_distance || ( $l_min_distance <= $min_distance ) ) {
+            # if character has no need to move to attack
 
-            $min_distance = $l_min_distance;
+            $score += 0;
 
-            push( @{ $tree{ $min_distance } }, $character_b );
+        } elsif( $path -> { 'step' } <= $max_movement_range ) {
+
+            # if character will reach attacking position within one turn
+
+            $score += 70;
+
+        } elsif( $max_movement_range > 0 ) {
+
+            # if character will reach attacking position within more than one turn
+
+            $score += 100 * int( $path -> { 'step' } / $max_movement_range );
+
+        } else {
+
+            # if character can't move and its foe is too far to strike now
+
+            next;
         }
+
+        my $foe_hp = $foe -> hp();
+        my $max_ability_score = undef;
+
+        foreach my $foe_ability ( @{ $foe -> abilities() } ) {
+
+            my $ability_score = 0;
+            my $turns_to_foe_ability = $foe -> turns_to_ability( $foe_ability );
+
+            my $turns_modifier = 2;
+
+            if( $turns_to_foe_ability < $turns_to_ability ) {
+
+                $turns_modifier = 1 + 2 * ( $turns_to_foe_ability - $turns_to_ability );
+
+            } elsif( $turns_to_foe_ability > $turns_to_ability ) {
+
+                $turns_modifier = 1;
+            }
+
+            my $foe_max_ability_roll = $foe -> max_ability_roll( $foe_ability );
+            my $foe_min_ability_roll = $foe -> min_ability_roll( $foe_ability );
+
+            my $foe_max_ability_roll_probability = $foe_ability -> max_roll_probability();
+
+            if( $hp <= $foe_min_ability_roll ) {
+
+                $ability_score += 80;
+
+            } elsif( $hp <= $foe_max_ability_roll ) {
+
+                if( $max_ability_roll_probability > $foe_max_ability_roll_probability ) {
+
+                    $ability_score += 40;
+
+                } else {
+
+                    $ability_score += 60;
+                }
+            }
+
+            $ability_score *= $turns_modifier;
+
+            if( $foe_hp <= $min_ability_roll ) {
+
+                $ability_score -= 60;
+
+            } elsif( $foe_hp <= $max_ability_roll ) {
+
+                if( $max_ability_roll_probability > $foe_max_ability_roll_probability ) {
+
+                    $ability_score -= 40;
+
+                } else {
+
+                    $ability_score -= 20;
+                }
+            }
+
+            if( defined $max_ability_score ) {
+
+                if( $ability_score > $max_ability_score ) {
+
+                    $max_ability_score = $ability_score;
+                }
+
+            } else {
+
+                $max_ability_score = $ability_score;
+            }
+        }
+
+        $score += ( $max_ability_score // 0 );
+
+        if( $foe_hp == $foe -> max_hp() ) {
+
+            $score += 30;
+        }
+
+        if( defined $min_score ) {
+
+            if( $min_score > $score ) {
+
+                $min_score = $score;
+            }
+
+        } else {
+
+            $min_score = $score;
+        }
+
+        push( @{ $tree{ $score } }, {
+            path => $path,
+            character => $foe,
+            score => $score,
+            ability => $ability,
+        } );
+
+        warn $foe -> name(), ' got ', $score, ' for ', $character -> name(), "\n";
     }
 
-    return undef unless defined $min_distance;
+    return undef unless defined $min_score;
 
-    return $tree{ $min_distance } -> [ 0 ];
+    return $tree{ $min_score } -> [ int( rand( scalar( @{ $tree{ $min_score } } ) ) ) ];
 }
 
 sub add_player {

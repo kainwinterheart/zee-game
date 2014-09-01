@@ -55,7 +55,7 @@ sub main {
                 next unless scalar( @foes ) > 0;
 
                 my $best_target = $engine -> find_best_target( $character, \@foes );
-                my $best_path = $engine -> find_best_path( $character, $best_target ) if defined $best_target;
+                my $best_path = $best_target -> { 'path' } if defined $best_target;
 
                 if( defined $best_path ) {
 
@@ -65,11 +65,12 @@ sub main {
 
                     if( $best_path -> { 'step' } <= $character -> max_movement_range() ) {
 
-                        my $ability = $character -> abilities() -> [ 0 ];
+                        my $ability = $best_target -> { 'ability' };
+                        $best_target = $best_target -> { 'character' };
 
                         $character -> schedule_at( $ability -> at() => sub {
 
-                            my $damage = $character -> gen_damage( $ability );
+                            my $damage = $character -> roll_ability( $ability );
 
                             $best_target -> damage_hp( $damage );
 
