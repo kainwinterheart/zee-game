@@ -154,6 +154,8 @@ sub find_best_target {
     my $min_ability_roll = $character -> min_ability_roll( $ability );
 
     my $max_ability_roll_probability = $ability -> max_roll_probability();
+    my $avg_ability_roll = ( $min_ability_roll
+        + int( ( $max_ability_roll - $min_ability_roll ) / 2 ) );
 
     foreach my $foe ( @$foes ) {
 
@@ -173,13 +175,16 @@ sub find_best_target {
 
             # if character will reach attacking position within one turn
 
-            $score += 70;
+            $score += 60;
 
         } elsif( $max_movement_range > 0 ) {
 
             # if character will reach attacking position within more than one turn
 
-            $score += 100 * int( $path -> { 'step' } / $max_movement_range );
+            $score += 70 * (
+                int( $path -> { 'step' } / $max_movement_range )
+                + ( ( int( $path -> { 'step' } % $max_movement_range ) ? 1 : 0 ) )
+            );
 
         } else {
 
@@ -196,6 +201,39 @@ sub find_best_target {
             my $ability_score = 0;
             my $turns_to_foe_ability = $foe -> turns_to_ability( $foe_ability );
 
+            my $foe_max_ability_roll = $foe -> max_ability_roll( $foe_ability );
+            my $foe_min_ability_roll = $foe -> min_ability_roll( $foe_ability );
+
+            my $foe_max_ability_roll_probability = $foe_ability -> max_roll_probability();
+            my $foe_avg_ability_roll = ( $foe_min_ability_roll
+                + int( ( $foe_max_ability_roll - $foe_min_ability_roll ) / 2 ) );
+
+            my $hp_score = 0;
+
+            if( $hp <= $foe_min_ability_roll ) {
+
+                $hp_score = 60;
+
+            } elsif( $hp <= $foe_avg_ability_roll ) {
+
+                $hp_score = 50;
+
+            } elsif( $hp <= $foe_max_ability_roll ) {
+
+                if( $max_ability_roll_probability > $foe_max_ability_roll_probability ) {
+
+                    $hp_score = 30;
+
+                } else {
+
+                    $hp_score = 40;
+                }
+
+            } else {
+
+                $hp_score = 20;
+            }
+
             my $turns_modifier = 2;
 
             if( $turns_to_foe_ability < $turns_to_ability ) {
@@ -207,44 +245,24 @@ sub find_best_target {
                 $turns_modifier = 1;
             }
 
-            my $foe_max_ability_roll = $foe -> max_ability_roll( $foe_ability );
-            my $foe_min_ability_roll = $foe -> min_ability_roll( $foe_ability );
-
-            my $foe_max_ability_roll_probability = $foe_ability -> max_roll_probability();
-
-            if( $hp <= $foe_min_ability_roll ) {
-
-                $ability_score += 80;
-
-            } elsif( $hp <= $foe_max_ability_roll ) {
-
-                if( $max_ability_roll_probability > $foe_max_ability_roll_probability ) {
-
-                    $ability_score += 40;
-
-                } else {
-
-                    $ability_score += 60;
-                }
-            }
-
-            $ability_score *= $turns_modifier;
-
             if( $foe_hp <= $min_ability_roll ) {
 
-                $ability_score -= 60;
+                $ability_score += 0;
+
+            } elsif( $foe_hp <= $avg_ability_roll ) {
+
+                $ability_score += 30;
 
             } elsif( $foe_hp <= $max_ability_roll ) {
 
-                if( $max_ability_roll_probability > $foe_max_ability_roll_probability ) {
+                $ability_score += $hp_score;
 
-                    $ability_score -= 40;
+            } else {
 
-                } else {
-
-                    $ability_score -= 20;
-                }
+                $ability_score += 10 + $hp_score;
             }
+
+            $ability_score *= $turns_modifier;
 
             if( defined $max_ability_score ) {
 
