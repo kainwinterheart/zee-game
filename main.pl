@@ -33,6 +33,16 @@ my $melee_attack = Ability::Remote::Attacking -> new(
     at => 0,
 );
 
+my $ranged_attack = Ability::Remote::Attacking -> new(
+    name => 'Basic ranged attack',
+    range => 3,
+    area => 1,
+    dice => [
+        [ 4, 0 ],
+    ],
+    at => 0,
+);
+
 my $character_a = Character -> new(
     id => 'a',
     name => 'First',
@@ -41,6 +51,7 @@ my $character_a = Character -> new(
     speed => 1,
     abilities => [
         $melee_attack,
+        $ranged_attack,
     ]
 );
 

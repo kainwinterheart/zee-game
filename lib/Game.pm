@@ -54,7 +54,7 @@ sub main {
 
                 next unless scalar( @foes ) > 0;
 
-                my $best_target = $engine -> find_best_target( $character, \@foes );
+                my $best_target = $engine -> choose_action( $character, \@foes );
                 my $best_path = $best_target -> { 'path' } if defined $best_target;
 
                 if( defined $best_path ) {
@@ -65,6 +65,7 @@ sub main {
 
                     if( $best_path -> { 'step' } <= $character -> max_movement_range() ) {
 
+                        my $score = $best_target -> { 'score' };
                         my $ability = $best_target -> { 'ability' };
                         $best_target = $best_target -> { 'character' };
 
@@ -75,7 +76,8 @@ sub main {
                             $best_target -> damage_hp( $damage );
 
                             print $character -> name(), ' dealt ', $damage, ' damage to ',
-                                $best_target -> name(), ' using ', $ability -> name(), "\n";
+                                $best_target -> name(), ' using ', $ability -> name(),
+                                ' (score: ', $score, ')', "\n";
 
                             unless( $best_target -> is_alive() ) {
 

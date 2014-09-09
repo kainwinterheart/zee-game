@@ -135,7 +135,7 @@ sub find_best_path {
 
 sub find_best_target {
 
-    my ( $self, $character, $foes ) = @_;
+    my ( $self, $ability, $character, $foes ) = @_;
 
     if( scalar( @$foes ) == 0 ) {
 
@@ -145,7 +145,6 @@ sub find_best_target {
     my $hp = $character -> hp();
     my %tree = ();
     my $field = $self -> field();
-    my $ability = $character -> abilities() -> [ 0 ]; # TODO
     my $min_score = undef;
     my $turns_to_ability = $character -> turns_to_ability( $ability );
     my $max_movement_range = $character -> max_movement_range();
@@ -301,9 +300,95 @@ sub find_best_target {
             character => $foe,
             score => $score,
             ability => $ability,
+            aux => {
+                max_ability_roll => $max_ability_roll,
+            },
         } );
 
-        warn $foe -> name(), ' got ', $score, ' for ', $character -> name(), "\n";
+        # warn $foe -> name(), ' got ', $score, ' for ', $character -> name(), "\n";
+    }
+
+    return undef unless defined $min_score;
+
+    return $tree{ $min_score } -> [ int( rand( scalar( @{ $tree{ $min_score } } ) ) ) ];
+}
+
+sub choose_action {
+
+    my ( $self, $character, $foes ) = @_;
+
+    my %aux = ();
+    my %tree = ();
+    my $min_score = undef;
+
+    foreach my $ability ( @{ $character -> abilities() } ) {
+
+        if( defined( my $action = $self -> find_best_target( $ability, $character, $foes ) ) ) {
+
+            if( defined $min_score ) {
+
+                if( $min_score > $action -> { 'score' } ) {
+
+                    $min_score = $action -> { 'score' };
+                }
+
+            } else {
+
+                $min_score = $action -> { 'score' };
+            }
+
+            while( my ( $key, $value ) = each( %{ $action -> { 'aux' } } ) ) {
+
+                my $op = ( ( $key =~ m/^max_/ ) ? '<' : '>' );
+                my $cmp = eval( 'sub { $_[ 0 ] ' . $op . ' $_[ 1 ] }' );
+
+                if( exists $aux{ $action -> { 'score' } } -> { $key } ) {
+
+                    if( $cmp -> ( $aux{ $action -> { 'score' } } -> { $key }, $value ) ) {
+
+                        $aux{ $action -> { 'score' } } -> { $key } = $value;
+                    }
+
+                } else {
+
+                    $aux{ $action -> { 'score' } } -> { $key } = $value;
+                }
+            }
+
+            push( @{ $tree{ $action -> { 'score' } } }, $action );
+        }
+    }
+
+    return undef unless defined $min_score;
+
+    my $abilities = $tree{ $min_score };
+
+    %aux = %{ $aux{ $min_score } };
+    $min_score = undef;
+    %tree = ();
+
+    foreach my $ability ( @$abilities ) {
+
+        my $score = $ability -> { 'score' };
+        my $aux = $ability -> { 'aux' };
+
+        $score += ( $aux{ 'max_ability_roll' } - $aux -> { 'max_ability_roll' } ) * 10;
+
+        if( defined $min_score ) {
+
+            if( $min_score > $score ) {
+
+                $min_score = $score;
+            }
+
+        } else {
+
+            $min_score = $score;
+        }
+
+        $ability -> { 'score' } = $score;
+
+        push( @{ $tree{ $score } }, $ability );
     }
 
     return undef unless defined $min_score;
