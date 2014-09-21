@@ -56,14 +56,23 @@ sub main {
 
                 my $best_target = $engine -> choose_action( $character, \@foes );
                 my $best_path = $best_target -> { 'path' } if defined $best_target;
+                my $when = undef;
+
+                if( defined $best_path ) {
+
+                    ( $best_path, $when ) = @$best_path{ 'data', 'when' };
+                }
 
                 if( defined $best_path ) {
 
                     ++ $moved_characters;
 
-                    $engine -> move_character( $character, $best_path );
+                    $engine -> move_character( $character, $best_path ) if( $when eq 'before' );
 
-                    if( $best_path -> { 'step' } <= $character -> max_movement_range() ) {
+                    if(
+                        ( $best_path -> { 'step' } <= $character -> max_movement_range() )
+                        || ( $when eq 'after' )
+                    ) {
 
                         my $score = $best_target -> { 'score' };
                         my $ability = $best_target -> { 'ability' };
@@ -98,6 +107,8 @@ sub main {
                             }
                         } );
                     }
+
+                    $engine -> move_character( $character, $best_path ) if( $when eq 'after' );
                 }
 
                 $character -> turn();

@@ -133,6 +133,76 @@ sub find_best_path {
     return $path;
 }
 
+sub find_safe_point {
+
+    my ( $self, $character, $foes ) = @_;
+
+    if( scalar( @$foes ) == 0 ) {
+
+        return undef;
+    }
+
+    my %tree = ();
+    my $field = $self -> field();
+    my $points = $self -> get_movement_area( $character );
+    my $max_score = undef;
+
+    foreach my $point ( @$points ) {
+
+        my $min_score = 0;
+
+        foreach my $foe ( @$foes ) {
+
+            $min_score += $point -> manhattan_distance( $field -> get_by_id( $foe -> id() ) );
+        }
+
+        $min_score /= scalar( @$foes );
+
+        push( @{ $tree{ $min_score } }, $point );
+
+        if( defined $max_score ) {
+
+            if( $max_score < $min_score ) {
+
+                $max_score = $min_score;
+            }
+
+        } else {
+
+            $max_score = $min_score;
+        }
+    }
+
+    return undef unless defined $max_score;
+
+    return $tree{ $max_score } -> [ int( rand( scalar( @{ $tree{ $max_score } } ) ) ) ];
+}
+
+sub get_movement_area {
+
+    my ( $self, $character ) = @_;
+
+    my $field = $self -> field();
+    my @points = ();
+    my @candidates = ( $field -> get_by_id( $character -> id() ) );
+
+    my $i = 0;
+    my $max = $character -> max_movement_range();
+
+    while( defined( my $point = shift( @candidates ) ) ) {
+
+        foreach my $point ( @{ $field -> neighbours( $point ) } ) {
+
+            push( @points, $point ) if( $point -> is_accessible() );
+            push( @candidates, $point );
+        }
+
+        last if( ++$i >= $max );
+    }
+
+    return [ reverse( @points ) ];
+}
+
 sub find_best_target {
 
     my ( $self, $ability, $character, $foes ) = @_;
@@ -283,6 +353,8 @@ sub find_best_target {
             $score += 30;
         }
 
+        $score += 30 if( ( $ability -> range() + ( $ability -> area() - 1 ) ) < 2 );
+
         if( defined $min_score ) {
 
             if( $min_score > $score ) {
@@ -310,7 +382,28 @@ sub find_best_target {
 
     return undef unless defined $min_score;
 
-    return $tree{ $min_score } -> [ int( rand( scalar( @{ $tree{ $min_score } } ) ) ) ];
+    my $item = $tree{ $min_score } -> [ int( rand( scalar( @{ $tree{ $min_score } } ) ) ) ];
+
+    if(
+        ( ( ! defined $item -> { 'path' } || ( $item -> { 'path' } -> { 'step' } == 0 ) ) )
+        && ( ( $ability -> range() + ( $ability -> area() - 1 ) ) > 1 )
+    ) {
+        my $to = $self -> find_safe_point( $character, $foes );
+
+        $item -> { 'path' } = {
+            when => 'after',
+            data => Path -> find( $field, $field -> get_by_id( $character -> id() ), $to ),
+        } if defined $to;
+
+    } else {
+
+        $item -> { 'path' } = {
+            when => 'before',
+            data => $item -> { 'path' },
+        };
+    }
+
+    return $item;
 }
 
 sub choose_action {
