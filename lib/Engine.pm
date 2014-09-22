@@ -149,14 +149,59 @@ sub find_safe_point {
 
     foreach my $point ( @$points ) {
 
-        my $min_score = 0;
+        my $min_score = undef;
 
         foreach my $foe ( @$foes ) {
 
-            $min_score += $point -> manhattan_distance( $field -> get_by_id( $foe -> id() ) );
+            my $score = 0;
+            my $min_ability_score = undef;
+            my $foe_max_movement_range = $foe -> max_movement_range();
+
+            foreach my $foe_ability ( @{ $foe -> abilities() } ) {
+
+                my $path = $self -> find_best_path( $foe_ability, $foe, $character );
+                my $ability_score = 0;
+
+                if( defined $path ) {
+
+                    $ability_score += 10 * (
+                        int( $path -> { 'step' } / $foe_max_movement_range )
+                        + ( ( int( $path -> { 'step' } % $foe_max_movement_range ) ? 1 : 0 ) )
+                    );
+                }
+
+                if( defined $min_ability_score ) {
+
+                    if( $min_ability_score > $ability_score ) {
+
+                        $min_ability_score = $ability_score;
+                    }
+
+                } else {
+
+                    $min_ability_score = $ability_score;
+                }
+            }
+
+            if( defined $min_ability_score ) {
+
+                $score += $min_ability_score;
+            }
+
+            if( defined $min_score ) {
+
+                if( $min_score > $score ) {
+
+                    $min_score = $score;
+                }
+
+            } else {
+
+                $min_score = $score;
+            }
         }
 
-        $min_score /= scalar( @$foes );
+        next unless defined $min_score;
 
         push( @{ $tree{ $min_score } }, $point );
 
@@ -353,8 +398,6 @@ sub find_best_target {
             $score += 30;
         }
 
-        $score += 30 if( ( $ability -> range() + ( $ability -> area() - 1 ) ) < 2 );
-
         if( defined $min_score ) {
 
             if( $min_score > $score ) {
@@ -381,6 +424,10 @@ sub find_best_target {
     }
 
     return undef unless defined $min_score;
+
+    require Data::Dumper;
+
+    print Data::Dumper::Dumper(\%tree);
 
     my $item = $tree{ $min_score } -> [ int( rand( scalar( @{ $tree{ $min_score } } ) ) ) ];
 
